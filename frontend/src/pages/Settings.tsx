@@ -27,19 +27,19 @@ export default function Settings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Full Name</Label>
-                  <Input id="full_name" placeholder="John Doe" className="rounded-xl border-border/40" />
+                  <Input id="full_name" placeholder="Enter your name" className="rounded-xl border-border/40" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="john@example.com" className="rounded-xl border-border/40" />
+                  <Input id="email" type="email" placeholder="Enter email" className="rounded-xl border-border/40" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" placeholder="johndoe" className="rounded-xl border-border/40" disabled />
+                  <Input id="username" placeholder="Enter username" className="rounded-xl border-border/40" disabled />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="language">Preferred Language</Label>
-                  <Input id="language" placeholder="English" className="rounded-xl border-border/40" />
+                  <Input id="language" placeholder="Enter language (e.g. English)" className="rounded-xl border-border/40" />
                 </div>
               </div>
               <Button className="rounded-xl gradient-primary mt-4 px-8">

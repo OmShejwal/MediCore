@@ -8,9 +8,9 @@ import {
   MapPin,
   Settings,
   Activity,
-  Apple,
-  Dumbbell,
   LogOut,
+  Accessibility,
+  Zap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -30,10 +30,13 @@ import {
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "AI Coach", url: "/coach", icon: MessageCircle },
+  { title: "AI Hub", url: "/coach", icon: MessageCircle },
   { title: "AI Diagnosis", url: "/diagnosis", icon: Brain },
-  { title: "Meal Plan", url: "/meals", icon: Apple },
-  { title: "Workout Plan", url: "/workouts", icon: Dumbbell },
+];
+
+const specializedItems = [
+  { title: "SahayakAI", url: "/sahayak", icon: Accessibility },
+  { title: "ManasMitra", url: "/manasmitra", icon: Zap },
 ];
 
 const secondaryItems = [
@@ -57,12 +60,12 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4 border-b border-border/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-secondary/80 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/10 overflow-hidden">
-            <img src="/favicon.svg" alt="HealthNova logo" className="h-7 w-7 object-contain" />
+          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
+            <Activity className="h-6 w-6 text-primary-foreground" />
           </div>
           {!collapsed && (
             <div>
-              <h1 className="font-heading text-lg font-bold text-foreground leading-none">HealthNova</h1>
+              <h1 className="font-heading text-lg font-bold text-foreground leading-none">VaidyaAI</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 font-medium">Health Intelligence</p>
             </div>
           )}
@@ -94,8 +97,30 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-4 py-2 text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Health Management</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-4 py-2 text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Specialized Support</SidebarGroupLabel>
           <SidebarGroupContent>
+            <SidebarMenu className="px-2 gap-1">
+              {specializedItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-secondary/80 group" 
+                      activeClassName="bg-secondary text-primary font-semibold shadow-sm"
+                    >
+                      <item.icon className="h-5 w-5 transition-transform group-hover:scale-110" />
+                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-4 py-2 text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Health Management</SidebarGroupLabel>
+           <SidebarGroupContent>
             <SidebarMenu className="px-2 gap-1">
               {secondaryItems.map((item) => (
                 <SidebarMenuItem key={item.title}>

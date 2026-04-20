@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { MapPin, Navigation, Loader2, Phone, ExternalLink, Stethoscope, RefreshCcw } from 'lucide-react';
+import { MapPin, Navigation, Loader2, Phone, ExternalLink, Stethoscope, RefreshCcw, Search } from 'lucide-react';
 
 interface Hospital {
   id: number;
@@ -12,15 +12,34 @@ interface Hospital {
   website: string | null;
 }
 
+const distanceInMeters = (a: [number, number], b: [number, number]) => {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const dLat = toRad(b[0] - a[0]);
+  const dLon = toRad(b[1] - a[1]);
+  const lat1 = toRad(a[0]);
+  const lat2 = toRad(b[0]);
+
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  return 2 * earthRadius * Math.asin(Math.sqrt(h));
+};
+
 const FindHospital: React.FC = () => {
   const mapRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const lastHospitalFetchRef = useRef<[number, number] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
 
   // ── Overpass query with multiple fallback endpoints ──────────────────────
   const fetchNearbyHospitals = useCallback(async (loc: [number, number]) => {
@@ -92,6 +111,7 @@ const FindHospital: React.FC = () => {
         })).filter((h: Hospital) => h.lat && h.lon); // drop entries without coordinates
 
         setHospitals(results);
+        lastHospitalFetchRef.current = loc;
         setLoading(false);
         return; // success — exit loop
       } catch (err: any) {
@@ -107,6 +127,75 @@ const FindHospital: React.FC = () => {
     );
     setLoading(false);
   }, []);
+
+  // Approximate location fallback when browser GPS is unavailable/blocked.
+  const fetchApproxLocation = useCallback(async (): Promise<[number, number] | null> => {
+    const providers = [
+      async () => {
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error('ipapi failed');
+        const data = await res.json();
+        return [Number(data.latitude), Number(data.longitude)] as [number, number];
+      },
+      async () => {
+        const res = await fetch('https://ipwho.is/');
+        if (!res.ok) throw new Error('ipwho failed');
+        const data = await res.json();
+        if (!data?.success) throw new Error('ipwho unsuccessful');
+        return [Number(data.latitude), Number(data.longitude)] as [number, number];
+      },
+    ];
+
+    for (const provider of providers) {
+      try {
+        const [lat, lon] = await provider();
+        if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+          return [lat, lon];
+        }
+      } catch {
+        // Try the next provider.
+      }
+    }
+
+    return null;
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`
+      );
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        const nextLoc: [number, number] = [parseFloat(lat), parseFloat(lon)];
+        setUserLocation(nextLoc);
+
+        if (mapRef.current?.map) {
+          const { map, userMarker } = mapRef.current;
+          if (userMarker) {
+            userMarker.setLatLng(nextLoc);
+          }
+          map.setView(nextLoc, 14, { animate: true });
+        }
+
+        fetchNearbyHospitals(nextLoc);
+      } else {
+        setError('Location not found. Please try a different search term.');
+      }
+    } catch (err) {
+      setError('Failed to search for location. Please try again.');
+    } finally {
+      setSearching(false);
+    }
+  };
 
   // ── Initialise Leaflet map imperatively (avoids MapContainer context bug) ─
   const initMap = useCallback(
@@ -144,11 +233,11 @@ const FindHospital: React.FC = () => {
         iconSize: [16, 16],
         iconAnchor: [8, 8],
       });
-      L.marker(loc, { icon: userIcon })
+      const userMarker = L.marker(loc, { icon: userIcon })
         .addTo(map)
         .bindPopup('<b>Your location</b>');
 
-      mapRef.current = { map, L };
+      mapRef.current = { map, L, userMarker, userIcon };
       setMapReady(true);
 
       // Fix tile loading after container mount
@@ -156,6 +245,78 @@ const FindHospital: React.FC = () => {
     },
     []
   );
+
+  const refreshCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported on this device.');
+      return;
+    }
+
+    if (!window.isSecureContext) {
+      setError('Live location needs HTTPS (or localhost).');
+      return;
+    }
+
+    setLocating(true);
+    setError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const nextLoc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(nextLoc);
+
+        if (!mapRef.current?.map) {
+          initMap(nextLoc);
+        } else {
+          const { map, L, userMarker, userIcon } = mapRef.current;
+          if (userMarker) {
+            userMarker.setLatLng(nextLoc);
+          } else {
+            mapRef.current.userMarker = L.marker(nextLoc, { icon: userIcon })
+              .addTo(map)
+              .bindPopup('<b>Your location</b>');
+          }
+          map.setView(nextLoc, 15, { animate: true });
+        }
+
+        lastHospitalFetchRef.current = nextLoc;
+        fetchNearbyHospitals(nextLoc);
+        setLocating(false);
+      },
+      async (geoError) => {
+        const approxLoc = await fetchApproxLocation();
+        if (approxLoc) {
+          setUserLocation(approxLoc);
+          if (!mapRef.current?.map) {
+            initMap(approxLoc);
+          } else {
+            const { map, L, userMarker, userIcon } = mapRef.current;
+            if (userMarker) {
+              userMarker.setLatLng(approxLoc);
+            } else {
+              mapRef.current.userMarker = L.marker(approxLoc, { icon: userIcon })
+                .addTo(map)
+                .bindPopup('<b>Your location (approximate)</b>');
+            }
+            map.setView(approxLoc, 14, { animate: true });
+          }
+          lastHospitalFetchRef.current = approxLoc;
+          fetchNearbyHospitals(approxLoc);
+          setError('Using approximate location. Enable precise location permission for better results.');
+          setLocating(false);
+          return;
+        }
+
+        if (geoError.code === geoError.PERMISSION_DENIED) {
+          setError('Location permission denied. Enable location access in browser settings and try again.');
+        } else {
+          setError('Unable to fetch your latest location. Please allow GPS/location access.');
+        }
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }, [fetchApproxLocation, fetchNearbyHospitals, initMap]);
 
   // ── Add hospital markers once both map + data are ready ──────────────────
   useEffect(() => {
@@ -197,31 +358,119 @@ const FindHospital: React.FC = () => {
   // ── Geolocation + bootstrap ───────────────────────────────────────────────
   useEffect(() => {
     const fallback: [number, number] = [16.7050, 74.2433]; // Kolhapur, Maharashtra
+    let watchId: number | null = null;
 
     const bootstrap = (loc: [number, number]) => {
       setUserLocation(loc);
       initMap(loc);
+      lastHospitalFetchRef.current = loc;
       fetchNearbyHospitals(loc);
     };
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => bootstrap([pos.coords.latitude, pos.coords.longitude]),
-        () => bootstrap(fallback),
-        { timeout: 8000 }
+    const startLiveTracking = () => {
+      watchId = navigator.geolocation.watchPosition(
+        (updated) => {
+          const refined: [number, number] = [updated.coords.latitude, updated.coords.longitude];
+          setUserLocation(refined);
+
+          if (mapRef.current?.map) {
+            const { map, L, userMarker, userIcon } = mapRef.current;
+            if (userMarker) {
+              userMarker.setLatLng(refined);
+            } else {
+              mapRef.current.userMarker = L.marker(refined, { icon: userIcon })
+                .addTo(map)
+                .bindPopup('<b>Your location</b>');
+            }
+          }
+
+          const lastFetched = lastHospitalFetchRef.current;
+          if (!lastFetched || distanceInMeters(lastFetched, refined) > 500) {
+            fetchNearbyHospitals(refined);
+          }
+        },
+        () => {
+          // Ignore intermittent tracking errors to avoid noisy alerts.
+        },
+        { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 }
       );
-    } else {
+    };
+
+    const bootstrapApproxOrFallback = async (fallbackMessage: string) => {
+      const approxLoc = await fetchApproxLocation();
+      if (approxLoc) {
+        setError('Using approximate location. Enable precise location permission for better results.');
+        bootstrap(approxLoc);
+        return;
+      }
+
+      setError(fallbackMessage);
       bootstrap(fallback);
+    };
+
+    if (!navigator.geolocation) {
+      void bootstrapApproxOrFallback('Geolocation is not supported on this device. Showing a default area.');
+      return () => {
+        if (mapRef.current?.map) {
+          mapRef.current.map.remove();
+          mapRef.current = null;
+        }
+      };
     }
+
+    if (!window.isSecureContext) {
+      void bootstrapApproxOrFallback('Live location needs HTTPS (or localhost). Showing a default area.');
+      return () => {
+        if (mapRef.current?.map) {
+          mapRef.current.map.remove();
+          mapRef.current = null;
+        }
+      };
+    }
+
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const liveLoc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setError(null);
+        bootstrap(liveLoc);
+        setLocating(false);
+        startLiveTracking();
+      },
+      async (geoError) => {
+        setLocating(false);
+
+        const approxLoc = await fetchApproxLocation();
+        if (approxLoc) {
+          bootstrap(approxLoc);
+          setError('Using approximate location. Enable location access for precise nearby hospitals.');
+          return;
+        }
+
+        bootstrap(fallback);
+
+        if (geoError.code === geoError.PERMISSION_DENIED) {
+          setError('Location permission denied. Enable location access and tap the navigation button to retry.');
+          return;
+        }
+
+        setError('Could not detect your current location. Showing a default area.');
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
 
     // Cleanup on unmount
     return () => {
+      if (watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
       if (mapRef.current?.map) {
         mapRef.current.map.remove();
         mapRef.current = null;
       }
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchApproxLocation, fetchNearbyHospitals, initMap]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f8fafc', fontFamily: 'Syne, system-ui, sans-serif' }}>
@@ -231,9 +480,48 @@ const FindHospital: React.FC = () => {
           <Stethoscope size={22} style={{ color: '#2563eb' }} />
           Nearby Hospitals & Clinics
         </h2>
-        <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-          {loading ? 'Searching within 10km of your location...' : `Found ${hospitals.length} medical facilities nearby`}
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+          <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+            {loading ? 'Searching within 10km of your location...' : `Found ${hospitals.length} medical facilities nearby`}
+          </p>
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8 }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input
+                type="text"
+                placeholder="Search city or area..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  padding: '8px 12px 8px 32px',
+                  borderRadius: 8,
+                  border: '1px solid #e2e8f0',
+                  fontSize: 13,
+                  width: 240,
+                  outline: 'none',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={searching || !searchQuery.trim()}
+              style={{
+                padding: '8px 16px',
+                background: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                opacity: searching || !searchQuery.trim() ? 0.6 : 1
+              }}
+            >
+              {searching ? 'Searching...' : 'Search'}
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Body */}
@@ -275,6 +563,13 @@ const FindHospital: React.FC = () => {
                 title="Refresh"
               >
                 <RefreshCcw size={14} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
+              </button>
+              <button
+                onClick={refreshCurrentLocation}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: '#2563eb', display: 'flex', alignItems: 'center' }}
+                title="Use current location"
+              >
+                {locating ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Navigation size={14} />}
               </button>
               <span style={{ fontSize: 10, background: '#2563eb', color: 'white', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>10KM</span>
             </div>

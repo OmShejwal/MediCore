@@ -1,82 +1,75 @@
-# HealthNova - AI Health Platform
+# VaidyaAI
 
-HealthNova is a sophisticated health-tracking and multi-organ diagnostic application designed to provide a futuristic "Health OS" experience. It leverages Deep Learning and Artificial Intelligence to analyze clinical scans, track vitals, and provide personalized wellness advice.
+VaidyaAI is an AI health platform that combines scan-based diagnosis, risk prediction, wellness coaching, disability scheme guidance, and mental health tracking in one workspace. The app is split into a React frontend and a FastAPI backend and is designed to run locally, in containers, or on cloud hosting platforms.
 
----
+## What It Does
 
-## 🚀 Features
+- Health dashboard with vitals, progress, achievements, and activity logging.
+- AROMI AI Coach for meal plans, workout plans, and combined plans.
+- Multi-organ prediction flows for skin, eye, oral, bone, lungs, diabetes, hypertension, and anemia.
+- SahayakAI for disability scheme discovery, eligibility checks, and application guidance.
+- ManasMitra for mental well-being check-ins, stress indexing, and reflection support.
+- Hospital finder and profile/settings management.
 
-- **Multi-Organ AI Diagnostics**: Clinical scan analysis for Skin, Eye, Oral, Bone, and Lungs.
-- **Clinical Risk Prediction**: AI-powered assessment for Diabetes, Hypertension, and Anemia using tabular data.
-- **Child Growth Tracker**: Malnutrition detection and Z-score analysis based on WHO standards.
-- **MUAC Tape Analysis**: Image-based malnutrition risk assessment.
-- **HealthNova Coach (AROMI)**: Multilingual AI coach (English, Hindi, Marathi) for personalized health guidance.
-- **Nearby Hospitals**: Location-based hospital and clinic finder with map integration.
-- **Health Dashboard**: Comprehensive overview of your health vitals, predictions, and growth tracking.
+## Repository Layout
 
----
+- [frontend](frontend) - Vite + React application.
+- [Hackathon/backend](Hackathon/backend) - FastAPI API and database layer.
+- [Hackathon/src](Hackathon/src) - Model training and preprocessing utilities.
+- [Hackathon/models](Hackathon/models) - Trained model artifacts.
+- [deploy/aws](deploy/aws) - AWS deployment notes and container guidance.
 
-## 🛠️ Technical Stack
+## Tech Stack
 
-- **Frontend**: React.js, Tailwind CSS, Lucide-React, TanStack Query (React Query).
-- **Backend**: FastAPI (Python), SQLAlchemy ORM, SQLite Database.
-- **Machine Learning**: PyTorch, Torchvision, OpenCV.
-- **AI Integration**: Groq API (Llama-3) for medical advice.
+- Frontend: React, Vite, TypeScript, Tailwind CSS, Shadcn UI, Framer Motion, React Query.
+- Backend: FastAPI, SQLAlchemy, Pydantic, SQLite for local development.
+- AI and ML: Groq, PyTorch, OpenCV, scikit-learn, DuckDuckGo search integration.
 
----
-
-## 🔮 Future Scope & Roadmap
-
-HealthNova is designed to evolve into a fully integrated medical ecosystem. Key future developments include:
-
-### 1. 🌐 IoT Device Integration (Real-time Vitals)
-- **Smart Wearables**: Integration with smartwatches and fitness bands for live **Footsteps**, **Heart Rate**, and **SpO2** tracking.
-- **Custom IoT Hardware**: Support for ESP32/Arduino-based sensors for continuous health monitoring (ECG, Temperature, and Pulse).
-- **Automatic Sync**: Real-time data synchronization between physical devices and the HealthNova Dashboard.
-
-### 2. 🧠 Expanded Medical Diagnostics
-- **MRI/CT Scan Analysis**: Support for complex 3D medical imaging analysis using advanced CNN architectures.
-- **Predictive Analytics**: Using historical data to predict potential health risks before symptoms appear.
-
-### 3. 🏥 Healthcare Ecosystem
-- **Telemedicine**: Direct video consultation with doctors based on AI scan results.
-- **Pharmacy Integration**: Automatic prescription uploads and medicine delivery.
-- **Medical Record Blockchain**: Secure, encrypted storage of patient history using blockchain technology for data privacy.
-
----
-
-## 📦 Installation
+## Local Setup
 
 ### Prerequisites
-- Python 3.8+
-- Node.js 16+
-- Groq API Key (Get it from [ Groq Console](https://console.groq.com/))
 
-### Backend Setup
-1. Navigate to `backend/`
-2. Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-3. Update `.env` with your `GROQ_API_KEY` and a secure `SECRET_KEY`.
-4. Install dependencies: `pip install -r requirements.txt`
-5. Run the server: `python main.py`
+- Python 3.8 or newer.
+- Node.js 18 or newer.
+- A Groq API key for live AI responses.
 
-### Frontend Setup
-1. Navigate to `frontend/`
-2. Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-3. Install dependencies: `npm install`
-4. Start development server: `npm run dev`
+### Backend
 
----
+1. Go to [Hackathon/backend](Hackathon/backend).
+2. Copy `.env.example` to `.env` and set `GROQ_API_KEY` and `SECRET_KEY`.
+3. Install dependencies with `pip install -r requirements.txt`.
+4. Start the API with `python main.py`.
+5. The backend listens on `http://127.0.0.1:8002` by default.
 
-## 🔒 Security Note
-**IMPORTANT**: Never commit your `.env` files to version control. The repository includes `.env.example` files to guide your configuration. Always use environment variables for sensitive data like API keys and database credentials.
+### Frontend
 
----
+1. Go to [frontend](frontend).
+2. Install dependencies with `npm install`.
+3. Start the dev server with `npm run dev`.
+4. The frontend runs on `http://localhost:8080`.
 
-## 📄 License
-This project is licensed under the MIT License.
+## Important Local Notes
+
+- Frontend API calls are proxied to the backend on port `8002`.
+- If the backend is not reachable, login-dependent pages will show authorization or connection errors.
+- The backend can still return demo-mode content when the Groq key is not set, but live AI responses require the key.
+
+## Useful Pages
+
+- `/` - landing and dashboard entry.
+- `/coach` - AROMI health coach.
+- `/sahayak` - disability scheme navigator.
+- `/manasmitra` - mental wellness tracking.
+- `/diagnosis` - image-based diagnosis tools.
+
+## Deployment
+
+- Frontend hosting options are documented in [deploy/aws](deploy/aws).
+- The backend can be containerized with the provided Docker files.
+- For production, prefer PostgreSQL or another managed database instead of SQLite.
+
+## Notes
+
+- Do not commit real secret values to git.
+- Large model artifacts are stored under [Hackathon/models](Hackathon/models).
+- If you change the backend port, update the frontend proxy in [frontend/vite.config.ts](frontend/vite.config.ts).

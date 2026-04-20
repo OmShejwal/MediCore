@@ -42,6 +42,14 @@ All colors MUST be HSL.
     --medical-dark: 170 60% 10%;
     --medical-surface: 168 25% 96%;
 
+    --sahayak-teal: 168 70% 38%;
+    --sahayak-teal-light: 168 40% 92%;
+    --sahayak-orange: 35 90% 55%;
+    --sahayak-orange-light: 35 60% 92%;
+    --sahayak-navy: 200 25% 12%;
+    --sahayak-green: 145 60% 42%;
+    --sahayak-green-light: 145 40% 92%;
+
     --sidebar-background: 170 30% 97%;
     --sidebar-foreground: 170 30% 26%;
     --sidebar-primary: 168 80% 30%;
@@ -80,6 +88,15 @@ All colors MUST be HSL.
     --border: 170 25% 18%;
     --input: 170 25% 18%;
     --ring: 168 70% 45%;
+
+    --sahayak-teal: 168 65% 45%;
+    --sahayak-teal-light: 168 30% 20%;
+    --sahayak-orange: 35 80% 50%;
+    --sahayak-orange-light: 35 40% 18%;
+    --sahayak-navy: 200 25% 10%;
+    --sahayak-green: 145 60% 50%;
+    --sahayak-green-light: 145 30% 20%;
+
     --sidebar-background: 170 40% 7%;
     --sidebar-foreground: 160 15% 90%;
     --sidebar-primary: 168 70% 45%;
@@ -122,5 +139,20 @@ All colors MUST be HSL.
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(168 70% 38%) 0%, hsl(168 50% 28%) 50%, hsl(200 25% 12%) 100%);
+  }
+  .gradient-card {
+    background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(168 40% 97%) 100%);
+  }
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(35 90% 55%) 0%, hsl(25 85% 50%) 100%);
+  }
+  .shadow-sahayak {
+    box-shadow: 0 4px 24px -4px hsl(168 70% 38% / 0.15);
+  }
+  .shadow-card {
+    box-shadow: 0 2px 16px -2px hsl(200 25% 12% / 0.08);
   }
 }

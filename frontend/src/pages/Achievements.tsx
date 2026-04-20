@@ -47,9 +47,9 @@ export default function Achievements() {
           <div className="divide-y divide-border/40">
             {[
               { name: "You", rank: 1, points: 2450 },
-              { name: "Sarah J.", rank: 2, points: 2100 },
-              { name: "Mike R.", rank: 3, points: 1850 },
-              { name: "Emily D.", rank: 4, points: 1600 },
+              { name: "User 2", rank: 2, points: 2100 },
+              { name: "User 3", rank: 3, points: 1850 },
+              { name: "User 4", rank: 4, points: 1600 },
             ].map((u, i) => (
               <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-4">

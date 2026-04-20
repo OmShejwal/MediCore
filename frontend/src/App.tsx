@@ -12,12 +12,12 @@ import RegisterPage from "./pages/RegisterPage.tsx";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.tsx";
 import AICoach from "./pages/AICoach.tsx";
 import Diagnosis from "./pages/Diagnosis.tsx";
-import MealPlan from "./pages/MealPlan.tsx";
-import WorkoutPlan from "./pages/WorkoutPlan.tsx";
 import Achievements from "./pages/Achievements.tsx";
 import FindHospital from "./pages/FindHospital.tsx";
 import ActivityLog from "./pages/ActivityLog.tsx";
 import Settings from "./pages/Settings.tsx";
+import SahayakAI from "./pages/SahayakAI.tsx";
+import ManasMitra from "./pages/ManasMitra.tsx";
 
 const queryClient = new QueryClient();
 
@@ -54,11 +54,14 @@ const App = () => (
                           <Route path="/dashboard" element={<Navigate to="/" replace />} />
                           <Route path="/coach" element={<AICoach />} />
                           <Route path="/diagnosis" element={<Diagnosis />} />
-                          <Route path="/meals" element={<MealPlan />} />
-                          <Route path="/workouts" element={<WorkoutPlan />} />
+                          <Route path="/plans" element={<Navigate to="/coach" replace />} />
+                          <Route path="/meals" element={<Navigate to="/coach" replace />} />
+                          <Route path="/workouts" element={<Navigate to="/coach" replace />} />
                           <Route path="/achievements" element={<Achievements />} />
                           <Route path="/hospitals" element={<FindHospital />} />
                           <Route path="/activity" element={<ActivityLog />} />
+                          <Route path="/sahayak" element={<SahayakAI />} />
+                          <Route path="/manasmitra" element={<ManasMitra />} />
                           <Route path="/settings" element={<Settings />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>

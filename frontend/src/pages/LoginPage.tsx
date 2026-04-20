@@ -33,14 +33,19 @@ export default function LoginPage() {
       localStorage.setItem('token', response.data.access_token);
       toast({
         title: "Login successful",
-        description: "Welcome back to HealthNova!",
+        description: "Welcome back to VaidyaAI!",
       });
       navigate('/');
     } catch (err: any) {
+      const isNetworkError = !err.response;
+      const errorMessage = isNetworkError
+        ? "Unable to reach the server. Check your API URL or Netlify proxy configuration."
+        : (err.response?.data?.detail || "Invalid credentials. Please try again.");
+
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: err.response?.data?.detail || "Invalid credentials. Please try again.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -77,7 +82,7 @@ export default function LoginPage() {
             </div>
             <div>
               <span className="text-2xl font-bold text-primary-foreground block" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                HealthNova
+                VaidyaAI
               </span>
               <span className="text-xs text-primary-foreground/50">AI Health Platform</span>
             </div>
@@ -161,7 +166,7 @@ export default function LoginPage() {
             </form>
           </Card>
 
-          <p className="text-xs text-primary-foreground/30 text-center">© 2026 HealthNova. All rights reserved.</p>
+          <p className="text-xs text-primary-foreground/30 text-center">© 2026 VaidyaAI. All rights reserved.</p>
         </div>
       </div>
 

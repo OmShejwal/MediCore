@@ -55,7 +55,7 @@ export default function RegisterPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-heading font-bold tracking-tight">Create an Account</CardTitle>
-          <CardDescription>Join HealthNova to monitor your health with AI</CardDescription>
+          <CardDescription>Join VaidyaAI to monitor your health with AI</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
           <CardContent className="space-y-4">
@@ -65,7 +65,7 @@ export default function RegisterPage() {
                 <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="fullName"
-                  placeholder="John Doe"
+                  placeholder="Enter your name"
                   className="pl-10"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -79,7 +79,7 @@ export default function RegisterPage() {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="username"
-                  placeholder="johndoe"
+                  placeholder="Enter username"
                   className="pl-10"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -94,7 +94,7 @@ export default function RegisterPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="john@example.com"
+                  placeholder="Enter email"
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

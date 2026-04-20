@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Brain, Upload, Loader2, ScanLine, Info, CheckCircle2, Camera, Smartphone, X, RefreshCw } from "lucide-react";
+import { Brain, Upload, Loader2, ScanLine, Info, CheckCircle2, Camera, Smartphone, RefreshCw } from "lucide-react";
 import api from '../services/api';
 
 export default function Diagnosis() {
@@ -17,13 +17,96 @@ export default function Diagnosis() {
   const [ipUrl, setIpUrl] = useState('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<any>(null);
+  const [processingImage, setProcessingImage] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const { toast } = useToast();
 
+  const setPreviewFromBlob = useCallback((blob: Blob) => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+    }
+    const nextUrl = URL.createObjectURL(blob);
+    previewUrlRef.current = nextUrl;
+    setCapturedImage(nextUrl);
+  }, []);
+
+  const normalizeImageFile = useCallback(async (inputFile: File): Promise<File> => {
+    const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    if (supportedTypes.has(inputFile.type)) {
+      return inputFile;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read image file.'));
+      reader.readAsDataURL(inputFile);
+    });
+
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('This image format is not supported. Please use JPG, PNG, or WEBP.'));
+      img.src = dataUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Unable to process image. Please try another file.');
+    }
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((nextBlob) => {
+        if (nextBlob) {
+          resolve(nextBlob);
+          return;
+        }
+        reject(new Error('Unable to convert image for diagnosis.'));
+      }, 'image/jpeg', 0.92);
+    });
+
+    const baseName = inputFile.name.replace(/\.[^/.]+$/, '');
+    return new File([blob], `${baseName || 'diagnosis-image'}.jpg`, { type: 'image/jpeg' });
+  }, []);
+
+  const handleSelectedFile = useCallback(async (inputFile: File | null) => {
+    if (!inputFile) return;
+
+    setProcessingImage(true);
+    try {
+      const normalized = await normalizeImageFile(inputFile);
+      setFile(normalized);
+      setResult(null);
+      toast({ title: 'Image Ready', description: 'Image uploaded successfully and is ready for diagnosis.' });
+    } catch (err: any) {
+      setFile(null);
+      toast({
+        variant: 'destructive',
+        title: 'Unsupported Image',
+        description: err?.message || 'Please upload a JPG, PNG, or WEBP image.',
+      });
+    } finally {
+      setProcessingImage(false);
+    }
+  }, [normalizeImageFile, toast]);
+
   useEffect(() => {
+    console.log('Diagnosis component mounted');
     fetchMetrics();
+    return () => {
+      console.log('Diagnosis component unmounting');
+      stopCamera();
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
   }, []);
 
   const fetchMetrics = async () => {
@@ -41,13 +124,20 @@ export default function Diagnosis() {
     } else {
       stopCamera();
     }
+    return () => {
+      stopCamera();
+    };
   }, [mode, cameraActive]);
 
   const startCamera = async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera API not available');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => undefined);
       }
     } catch (err) {
       toast({
@@ -68,22 +158,44 @@ export default function Diagnosis() {
   };
 
   const captureFrame = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const capturedFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
-          setFile(capturedFile);
-          setCapturedImage(canvas.toDataURL('image/jpeg'));
-          setCameraActive(false);
+    try {
+      if (videoRef.current && canvasRef.current) {
+        const video = videoRef.current;
+        if (!video.videoWidth || !video.videoHeight) {
+          toast({
+            variant: 'destructive',
+            title: 'Camera Not Ready',
+            description: 'Please wait a moment and try capturing again.',
+          });
+          return;
         }
-      }, 'image/jpeg');
+
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Could not get canvas context');
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const capturedFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
+            setPreviewFromBlob(blob);
+            void handleSelectedFile(capturedFile);
+            setResult(null);
+            setCameraActive(false);
+          }
+        }, 'image/jpeg', 0.92);
+      }
+    } catch (err) {
+      console.error("Capture error:", err);
+      toast({
+        variant: "destructive",
+        title: "Capture Failed",
+        description: "An error occurred while taking the picture.",
+      });
     }
   };
 
@@ -99,10 +211,18 @@ export default function Diagnosis() {
       // Note: This might hit CORS issues if the IP Webcam doesn't have CORS enabled.
       // A workaround is to proxy through backend, but let's try direct first.
       const response = await fetch(ipUrl);
+      if (!response.ok) {
+        throw new Error(`IP webcam returned HTTP ${response.status}`);
+      }
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('image/')) {
+        throw new Error('The provided URL did not return an image');
+      }
       const blob = await response.blob();
       const capturedFile = new File([blob], "ip_capture.jpg", { type: "image/jpeg" });
-      setFile(capturedFile);
-      setCapturedImage(URL.createObjectURL(blob));
+      setPreviewFromBlob(blob);
+      await handleSelectedFile(capturedFile);
+      setResult(null);
       toast({ title: "Image Captured", description: "Successfully retrieved image from IP Webcam." });
     } catch (err) {
       toast({
@@ -117,6 +237,13 @@ export default function Diagnosis() {
 
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (processingImage) {
+      toast({
+        title: 'Preparing image',
+        description: 'Please wait for image processing to finish, then submit again.',
+      });
+      return;
+    }
     if (!file) return;
 
     setLoading(true);
@@ -129,16 +256,22 @@ export default function Diagnosis() {
         params: { body_part: bodyPart },
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setResult(response.data);
+      const diagnosisResult = response.data;
+      console.log('Diagnosis result received:', diagnosisResult);
+      if (!diagnosisResult || (typeof diagnosisResult === 'object' && !diagnosisResult.predicted_name)) {
+        throw new Error('Invalid diagnosis response from server.');
+      }
+      setResult(diagnosisResult);
       toast({
         title: "Analysis Complete",
         description: "AI diagnosis result is ready.",
       });
-    } catch (err) {
+    } catch (err: any) {
+      const serverMessage = err?.response?.data?.detail;
       toast({
         variant: "destructive",
         title: "Prediction Failed",
-        description: "Error processing the image. Please try again.",
+        description: typeof serverMessage === 'string' ? serverMessage : "Error processing the image. Please try another clear image.",
       });
     } finally {
       setLoading(false);
@@ -156,7 +289,7 @@ export default function Diagnosis() {
           <Button 
             variant={mode === 'upload' ? 'default' : 'ghost'} 
             size="sm" 
-            onClick={() => setMode('upload')}
+            onClick={() => { setMode('upload'); setCameraActive(false); }}
             className="rounded-xl h-9 px-4"
           >
             <Upload className="w-4 h-4 mr-2" /> Upload
@@ -172,7 +305,7 @@ export default function Diagnosis() {
           <Button 
             variant={mode === 'ip_webcam' ? 'default' : 'ghost'} 
             size="sm" 
-            onClick={() => setMode('ip_webcam')}
+            onClick={() => { setMode('ip_webcam'); setCameraActive(false); }}
             className="rounded-xl h-9 px-4"
           >
             <Smartphone className="w-4 h-4 mr-2" /> IP Webcam
@@ -225,14 +358,18 @@ export default function Diagnosis() {
                     onDrop={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      if (e.dataTransfer.files?.[0]) setFile(e.dataTransfer.files[0]);
+                      if (e.dataTransfer.files?.[0]) {
+                        void handleSelectedFile(e.dataTransfer.files[0]);
+                      }
                     }}
                   >
                     <input
                       type="file"
                       id="file-upload"
                       className="hidden"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        void handleSelectedFile(e.target.files?.[0] || null);
+                      }}
                       accept="image/*"
                     />
                     <label htmlFor="file-upload" className="cursor-pointer space-y-3 block">
@@ -241,7 +378,7 @@ export default function Diagnosis() {
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{file ? file.name : 'Click or drag image to upload'}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Supports PNG, JPG up to 10MB</p>
+                        <p className="text-xs text-muted-foreground mt-1">Supports PNG, JPG, WEBP up to 10MB</p>
                       </div>
                     </label>
                   </div>
@@ -300,8 +437,8 @@ export default function Diagnosis() {
                 <canvas ref={canvasRef} className="hidden" />
               </div>
 
-              <Button type="submit" disabled={loading || !file} className="w-full gradient-primary hover:opacity-90 transition-all rounded-xl py-6 shadow-lg shadow-primary/20">
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Run AI Diagnosis"}
+              <Button type="submit" disabled={loading || processingImage || !file} className="w-full gradient-primary hover:opacity-90 transition-all rounded-xl py-6 shadow-lg shadow-primary/20">
+                {loading || processingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Run AI Diagnosis"}
               </Button>
             </form>
           </CardContent>
@@ -363,26 +500,26 @@ export default function Diagnosis() {
                 <CardHeader className="py-4 border-b border-border/40 bg-muted/10">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                     <Brain size={16} className="text-primary" />
-                    {bodyPart.toUpperCase()} Model Performance
+                    {bodyPart?.toUpperCase() || ''} Model Performance
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Accuracy</p>
-                      <p className="text-lg font-bold text-primary">{(metrics[bodyPart].accuracy * 100).toFixed(1)}%</p>
+                      <p className="text-lg font-bold text-primary">{((metrics[bodyPart]?.accuracy || 0) * 100).toFixed(1)}%</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">F1-Score</p>
-                      <p className="text-lg font-bold text-foreground">{(metrics[bodyPart].f1 * 100).toFixed(1)}%</p>
+                      <p className="text-lg font-bold text-foreground">{((metrics[bodyPart]?.f1 || 0) * 100).toFixed(1)}%</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Precision</p>
-                      <p className="text-lg font-bold text-foreground">{(metrics[bodyPart].precision * 100).toFixed(1)}%</p>
+                      <p className="text-lg font-bold text-foreground">{((metrics[bodyPart]?.precision || 0) * 100).toFixed(1)}%</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Training Samples</p>
-                      <p className="text-lg font-bold text-foreground">{metrics[bodyPart].samples.toLocaleString()}</p>
+                      <p className="text-lg font-bold text-foreground">{(metrics[bodyPart]?.samples || 0).toLocaleString()}</p>
                     </div>
                   </div>
                 </CardContent>
