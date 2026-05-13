@@ -93,7 +93,7 @@ CRISIS_RESPONSE = (
 
 
 MANASMITRA_STRESS_SYSTEM_PROMPT = """
-You are ManasMitra, an empathetic AI mental wellness companion inside VaidyaAI.
+You are ManasMitra, an empathetic AI mental wellness companion inside MediCore.
 After analyzing a user's stress and mood data, generate a structured, personalized stress relief report.
 
 DATA YOU RECEIVE

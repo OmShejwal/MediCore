@@ -1,6 +1,6 @@
-# VaidyaAI AWS Deployment Runbook
+# MediCore AWS Deployment Runbook
 
-This folder documents the AWS deployment path for VaidyaAI. The setup assumes the frontend is deployed as a static site and the backend is deployed as a containerized API.
+This folder documents the AWS deployment path for MediCore. The setup assumes the frontend is deployed as a static site and the backend is deployed as a containerized API.
 
 ## What is already prepared
 

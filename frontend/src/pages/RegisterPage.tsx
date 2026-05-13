@@ -55,7 +55,7 @@ export default function RegisterPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-heading font-bold tracking-tight">Create an Account</CardTitle>
-          <CardDescription>Join VaidyaAI to monitor your health with AI</CardDescription>
+          <CardDescription>Join MediCore to monitor your health with AI</CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
           <CardContent className="space-y-4">

@@ -376,7 +376,7 @@ async def predict(
         ai_advice = "AI guidance is temporarily unavailable. Please consult a medical professional for advice."
     
     # Save image
-    upload_dir = "uploads/vaidyaai_predictions"
+    upload_dir = "uploads/medicore_predictions"
     os.makedirs(upload_dir, exist_ok=True)
     file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
     file_name = f"{uuid.uuid4()}.{file_ext}"

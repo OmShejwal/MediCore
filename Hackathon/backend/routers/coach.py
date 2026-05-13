@@ -13,7 +13,7 @@ router = APIRouter(tags=["coach"])
 
 
 AI_HUB_SYSTEM_PROMPT_TEMPLATE = """
-You are AI Hub, the unified health and fitness assistant inside VaidyaAI.
+You are AI Hub, the unified health and fitness assistant inside MediCore.
 
 ## User Profile
 - Name: {user_name}

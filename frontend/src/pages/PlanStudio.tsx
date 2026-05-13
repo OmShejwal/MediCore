@@ -39,7 +39,7 @@ const suggestedPrompts = [
   'Create a workout plan based on a vegetarian high-protein diet',
 ];
 
-const helperText = 'VaidyaAI can provide guidance but always consult a professional for medical or training decisions.';
+const helperText = 'MediCore can provide guidance but always consult a professional for medical or training decisions.';
 
 function inferIntent(prompt: string): PlanIntent {
   const lower = prompt.toLowerCase();

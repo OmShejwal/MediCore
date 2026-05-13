@@ -33,7 +33,7 @@ export default function LoginPage() {
       localStorage.setItem('token', response.data.access_token);
       toast({
         title: "Login successful",
-        description: "Welcome back to VaidyaAI!",
+        description: "Welcome back to MediCore!",
       });
       navigate('/');
     } catch (err: any) {
@@ -82,7 +82,7 @@ export default function LoginPage() {
             </div>
             <div>
               <span className="text-2xl font-bold text-primary-foreground block" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                VaidyaAI
+                MediCore
               </span>
               <span className="text-xs text-primary-foreground/50">AI Health Platform</span>
             </div>
@@ -166,7 +166,7 @@ export default function LoginPage() {
             </form>
           </Card>
 
-          <p className="text-xs text-primary-foreground/30 text-center">© 2026 VaidyaAI. All rights reserved.</p>
+          <p className="text-xs text-primary-foreground/30 text-center">© 2026 MediCore. All rights reserved.</p>
         </div>
       </div>
 

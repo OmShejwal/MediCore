@@ -16,7 +16,7 @@ def reset_admin():
             print("Admin user not found. Creating new admin user...")
             new_admin = User(
                 username="admin",
-                email="admin@vaidyaai.com",
+                email="admin@medicore.com",
                 full_name="Admin User",
                 hashed_password=get_password_hash("admin123"),
                 fitness_level="intermediate",

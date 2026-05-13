@@ -32,7 +32,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-primary/80 font-semibold leading-none">Powered by</p>
-              <p className="text-xl font-heading font-black text-primary leading-tight">VaidyaAI</p>
+              <p className="text-xl font-heading font-black text-primary leading-tight">MediCore</p>
             </div>
           </div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Health Overview</h1>

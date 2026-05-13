@@ -1,6 +1,6 @@
-# Hackathon Backend
+# MediCore Backend
 
-This folder contains the FastAPI backend for VaidyaAI. It exposes authentication, coaching, diagnosis, scheme search, progress tracking, and mental health endpoints used by the frontend.
+This folder contains the FastAPI backend for MediCore. It exposes authentication, coaching, diagnosis, scheme search, progress tracking, and mental health endpoints used by the frontend.
 
 ## Core Responsibilities
 

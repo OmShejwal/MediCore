@@ -1,6 +1,6 @@
-# VaidyaAI Frontend
+# MediCore Frontend
 
-This folder contains the VaidyaAI web client built with Vite, React, TypeScript, and Tailwind CSS. It includes the main dashboard, AROMI coach, SahayakAI, ManasMitra, diagnosis pages, settings, and supporting UI components.
+This folder contains the MediCore web client built with Vite, React, TypeScript, and Tailwind CSS. It includes the main dashboard, AROMI coach, SahayakAI, ManasMitra, diagnosis pages, settings, and supporting UI components.
 
 ## What is included
 

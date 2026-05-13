@@ -16,17 +16,28 @@ from routers import users, token, workout, meals, coach, progress, predictions, 
 from database import init_db, SessionLocal, User
 from services.auth import get_password_hash
 import json
-# Updated VaidyaAI Backend
-app = FastAPI(title="VaidyaAI API")
+# Updated MediCore backend
+app = FastAPI(title="MediCore API")
+
+
+def _get_cors_origins() -> list[str]:
+    raw_value = (os.getenv("CORS_ORIGINS") or "*").strip()
+    if not raw_value or raw_value == "*":
+        return ["*"]
+
+    origins = [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+    return origins or ["*"]
 
 # Initialize database immediately
 init_db()
 
-# CORS - Allow frontend from any origin for deployment flexibility
+# CORS - Allow all origins in development and configurable origins in production
+cors_origins = _get_cors_origins()
+allow_credentials = "*" not in cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -71,7 +82,7 @@ for route in app.routes:
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "VaidyaAI Backend is running"}
+    return {"status": "ok", "message": "MediCore Backend is running"}
 
 @app.get("/health")
 def health_check():
@@ -80,4 +91,4 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8002))
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
